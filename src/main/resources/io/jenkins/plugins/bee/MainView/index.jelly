@@ -1,0 +1,340 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+    <l:layout norefresh="true">
+        <l:header>
+            <style>
+
+                button[action="sync"], button#btn_syncAll, button.btn_for_comment {background:#0587d4; color: #FFF; border:none; padding: 3px 5px; border-radius:3px}
+                button[action="monitor"], button.btn_for_monitor {background: #dc3545; color: #FFF; border:none; padding: 3px 5px; border-radius:3px}
+
+                .log_modal_border{ border-top: 1px solid #ddd }
+
+                #log_modal { position:absolute; width:50%; height: 80%; background-color:#FFF; left: 50%; margin-left:-25%; top: 10%; padding: 10px; z-index: 9999; border: 1px solid; }
+                #log_date { padding: 5px 10px; }
+                #log_date select { padding: 5px; }
+                #swarm_info { padding: 5px 10px; font-size: 20px }
+                #log_modal_footer { text-align: right }
+                textarea#text_log { border:none; width: 100%; outline: none; }
+                textarea#text_log { border:none; width: 100%; height: 80%; outline: none; }
+                button#log_box_close{ margin: 10px; }
+                div#comment_for_sync { display: none; padding:10px; font-size:15px; border-radius:5px; width: 500px; height: 200px; position: absolute; z-index: 3; background-color: rgb(255, 255, 255); color: rgb(51, 51, 51); left: 50%; margin-left: -250px; top: 20%; box-shadow: 5px 5px 5px 5px gray;}
+                div#comment_for_monitor { display: none; padding:10px; font-size:15px; border-radius:5px; width: 500px; height: 200px; position: absolute; z-index: 3; background-color: rgb(255, 255, 255); color: rgb(51, 51, 51); left: 50%; margin-left: -250px; top: 20%; box-shadow: 5px 5px 5px 5px gray;}
+
+                .disabled { background-color: grey; opacity: 0.8; }
+            </style>
+        </l:header>
+        <l:main-panel>
+            <h1>${it.displayName}</h1>
+            <script
+              src="https://code.jquery.com/jquery-3.7.1.min.js"
+              integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+              crossorigin="anonymous"></script>
+            <script type="text/javaScript">
+                jQuery.noConflict();
+
+                var p_swarm_name;
+                var p_project_name;
+                var p_bee_server;
+                var logInterval;
+
+                function requestLog(project_name, swarm_name, bee_server, period) {
+
+                    var textLog = document.getElementById("text_log");
+
+                    jQuery.ajax("${rootURL}/Bee-Connector/log",{
+                        method: "get",
+                        data: {"projectName": project_name, "swarmName": swarm_name, "beeServerUrl":bee_server, "weak": period === "week" ? true : false },
+                    }).done(function (rsp) {
+                        // to check log content in the recent order
+                        textLog.innerHTML = rsp;
+                        textLog.scrollTop = textLog.scrollHeight;
+
+                        clearInterval(logInterval);
+
+                        logInterval = setInterval(() => {
+                            requestLog(project_name, swarm_name, bee_server, period);
+                        }, 1000 * 10)
+                    }).fail(function(rsp){
+                        alert(rsp);
+                    });
+                }
+
+                function moveLog(swarm_name, project_name, bee_server){
+                    var swarmInfo = document.getElementById("swarm_info");
+                    var logArea = document.getElementById("log_area");
+                    var period = document.getElementById("log_period");
+
+                    swarmInfo.innerHTML = swarm_name;
+
+                    if (logArea.style.display === "none") {
+                        logArea.style.display = "block";
+
+                        requestLog(project_name, swarm_name, bee_server, period);
+                    } else {
+                        logArea.style.display = "none";
+                    }
+                }
+
+                function doSyncAll(){
+                    jQuery('.btn_action').attr('disabled', true);
+                    document.body.style.cursor = 'wait'
+                    alert("[START][SYNC-CAPACITY]");
+                    jQuery.ajax("${rootURL}/Bee-Connector/syncAll",{
+                        method: "get",
+                        data: null,
+                    }).done(function (rsp) {
+                        jQuery('.btn_action').attr('disabled', false);
+                        document.body.style.cursor = 'default'
+                        alert(rsp);
+                        location.href = "";
+                    }).fail(function(rsp){
+                        alert(rsp);
+                    });
+                }
+
+                function doSync(swarmName){
+                    jQuery('.btn_action').attr('disabled', true);
+                    document.body.style.cursor = 'wait'
+                    alert("[START][SYNC-CAPACITY]"+swarmName);
+                    jQuery.ajax("${rootURL}/Bee-Connector/sync",{
+                        method: "get",
+                        data: {swarmName},
+                    }).done(function (rsp) {
+                        jQuery('.btn_action').attr('disabled', false);
+                        document.body.style.cursor = 'default'
+                        alert(rsp);
+                        location.href = "";
+                    }).fail(function(rsp){
+                        alert(rsp);
+                    });
+                }
+
+                function moveEdit(swarm_name, project_name, bee_server){
+                    jQuery.ajax("${rootURL}/Bee-Connector/editData",{
+                        method: "get",
+                        data: {"projectName": project_name, "swarmName": swarm_name, "beeServerUrl":bee_server},
+                    }).done(function (rsp) {
+                        location.href = rsp;
+                    }).fail(function(rsp){
+                        alert(rsp);
+                    });
+                }
+
+                function moveDelete(swarm_name, project_name, bee_server){
+                    if (confirm("Do you want to delete?")) {
+                        jQuery.ajax("${rootURL}/Bee-Connector/delete",{
+                            method: "get",
+                            data: {"projectName": project_name, "swarmName": swarm_name, "beeServerUrl":bee_server},
+                        }).done(function (rsp) {
+                            location.href = "";
+                            alert(rsp);
+                        }).fail(function(rsp){
+                            alert(rsp);
+                        });
+                    }
+                }
+
+                function event_button(){
+
+                    document.body.addEventListener('click', function (evt) {
+                        if (evt.target.className === 'btn_action') {
+                            var project_name = evt.target.getAttribute('project');
+                            var swarm_name = evt.target.getAttribute('swarm');
+                            var bee_server = evt.target.getAttribute('beeServer');
+                            var action = evt.target.getAttribute('action');
+                            var disabled = evt.target.getAttribute('disabled_value');
+                            if(action === "edit"){
+                                moveEdit(swarm_name, project_name, bee_server);
+                            }else if(action === "delete"){
+                                moveDelete(swarm_name, project_name, bee_server);
+                            }else if(action === "log"){
+                                p_swarm_name = swarm_name;
+                                p_project_name = project_name;
+                                p_bee_server = bee_server;
+                                moveLog(swarm_name, project_name, bee_server);
+                            }else if(action === "create"){
+                                location.href = "create";
+                            }else if(action === "syncAll"){
+                                document.getElementById("comment_for_sync").style.display = 'none';
+
+                                //코멘트 창보다 먼저 실행되어 setTimeout을 실행하여 delay 시간을 줌
+                                setTimeout(function (){
+                                    doSyncAll();
+                                },100)
+                            }else if(action === "sync"){
+                                document.getElementById("comment_for_sync").style.display = 'none';
+
+                                //코멘트 창보다 먼저 실행되어 setTimeout을 실행하여 delay 시간을 줌
+                                setTimeout(function (){
+                                    doSync(swarm_name);
+                                },100)
+                            } else if(action === "monitor"){
+                                let flag = "disable";
+                                if(disabled === "true") {
+                                    flag = "enable";
+                                }
+                                setTimeout(function (){
+                                    const text = "Do you want to " +  flag + " swarm? \nSwarm Name : " + swarm_name;
+                                    if (confirm(text)) {
+                                        jQuery.ajax("${rootURL}/Bee-Connector/monitor",{
+                                            method: "get",
+                                            data: {"projectName": project_name, "swarmName": swarm_name, "beeServerUrl":bee_server, "disabled": disabled},
+                                        }).done(function (rsp) {
+                                            location.href = "";
+                                            alert(rsp);
+                                        }).fail(function(rsp){
+                                            alert(rsp);
+                                        });
+                                    }
+                                },100)
+                            }
+                        }
+                    }, false);
+
+                    /**
+                     * 버튼 마우스오버 시 코멘트 div 보이는 이벤트
+                     */
+                    document.body.addEventListener('mouseover', function (evt) {
+                        if (evt.target.className === 'btn_action') {
+                            var action = evt.target.getAttribute('action');
+                            var sync_comment_modal = document.getElementById("comment_for_sync");
+
+                            if(action === "sync" || action === "syncAll"){
+                                sync_comment_modal.style.display = 'block';
+                            } else if (action === "monitor"){
+                                document.getElementById("comment_for_monitor").style.display = 'block';
+                            }
+                        }
+                    }, false);
+
+                    document.body.addEventListener('mouseout', function (evt) {
+                        if (evt.target.className === 'btn_action') {
+                            var action = evt.target.getAttribute('action');
+                            if(action === "sync" || action === "syncAll"){
+                                document.getElementById("comment_for_sync").style.display = 'none';
+                            } else if(action === "monitor"){
+                                document.getElementById("comment_for_monitor").style.display = 'none';
+                            }
+                        }
+                    }, false);
+
+                    document.getElementById("log_period").addEventListener('change', function () {
+                        var period = this.value;
+                        requestLog(p_project_name, p_swarm_name, p_bee_server, period);
+                    })
+                }
+
+                function moveCreate(){
+                    location.href = "create";
+                }
+
+                document.addEventListener('DOMContentLoaded', function() {
+                    moveLog();
+                    event_button();
+
+                    document.getElementById("log_box_close").addEventListener('click', function (){
+                        clearInterval(logInterval);
+                        document.getElementById('log_area').style.display = 'none';
+                        document.getElementById('log_period').value = 'today';
+                    });
+                });
+
+            </script>
+            <div id="load_page" >
+                <table align="left">
+                    <tr>
+                        <td><button type="button" class="btn_action" action="create">Create</button></td>
+                        <td><button type="button" class="btn_action" action="syncAll" id="btn_syncAll">Sync All</button></td>
+                    </tr>
+                </table>
+                <panel>
+                    <table width="100%" cellpadding="5" cellspacing="0" border="1" align="center" style="border-collapse:collapse; border:1px gray solid;" >
+                        <thead>
+                            <tr>
+                                <th>Bee Project name</th>
+                                <th>Swarm name</th>
+                                <th>Owner</th>
+                                <th>Image name</th>
+                                <th>Capacity</th>
+                                <th>Labels</th>
+                                <th>Rest Server</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+
+                            <j:forEach items="${it.swarmConnector.swarmList}" var="i">
+                                <tr class="${i.disabled ? 'disabled' : '' }">
+                                    <td>${i.projectName}</td>
+                                    <td>${i.swarmName}</td>
+                                    <td>${i.ownerName}</td>
+                                    <td>${i.imageName}</td>
+                                    <td>${i.capacity}</td>
+                                    <td>
+                                        <table>
+                                            <j:forEach items="${i.labels}" var="label">
+                                                <tr><td> ${label} </td></tr>
+                                            </j:forEach>
+                                        </table>
+                                    </td>
+                                    <td>${i.beeRestUrl}</td>
+                                    <td>
+                                        <table align="center">
+                                            <tr>
+                                                <td><button type="button" class="btn_action" action="edit" id="edit-${i.swarmName}" swarm="${i.swarmName}" project="${i.projectName}" beeServer="${i.beeRestUrl}">Edit</button></td>
+                                                <td><button type="button" class="btn_action" action="delete" id="delete-${i.swarmName}" swarm="${i.swarmName}" project="${i.projectName}" beeServer="${i.beeRestUrl}">Delete</button></td>
+                                                <td><button type="button" class="btn_action" action="log" id="log-${i.swarmName}" swarm="${i.swarmName}" project="${i.projectName}" beeServer="${i.beeRestUrl}">Log</button></td>
+                                                <td><button type="button" class="btn_action" action="sync" id="sync-${i.swarmName}" swarm="${i.swarmName}" project="${i.projectName}" beeServer="${i.beeRestUrl}">Sync</button></td>
+                                                <td><button type="button" class="btn_action" action="monitor" id="disabled-${i.swarmName}" swarm="${i.swarmName}" project="${i.projectName}" beeServer="${i.beeRestUrl}" disabled_value="${i.disabled}">${i.disabled ? "Enable" : "Disable"}</button></td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </j:forEach>
+                        </tbody>
+                    </table>
+                </panel>
+            </div>
+        </l:main-panel>
+    </l:layout>
+    <div id="log_area">
+        <div id="log_modal">
+            <div>
+                <span id="swarm_info"></span>
+            </div>
+            <div id="log_date">
+                <span>Log Date : </span>
+                <select id="log_period">
+                    <option value="week">최근 일주일</option>
+                    <option selected="true" value="today">${it.getToday()}</option>
+                </select>
+            </div>
+            <div class="log_modal_border"></div>
+            <textarea id="text_log" readonly="readonly"></textarea>
+            <div class="log_modal_border"></div>
+            <div id="log_modal_footer">
+                <button id="log_box_close">닫기</button>
+            </div>
+        </div>
+    </div>
+    <div id="comment_for_sync">
+        Click the 'Sync' or 'SyncAll' button to synchronize the capacity of workernode with the current actual capacity
+        <br/><br/>
+        <div>
+            <button class="btn_for_comment">Sync All</button> : for all swarms
+        </div>
+        <div style="margin-top:10px">
+            <button class="btn_for_comment">Sync</button> : for the swarm clicked in the table list
+        </div>
+    </div>
+    <div id="comment_for_monitor">
+        Click the 'Disabled' or 'Enabled' button to change monitoring status
+        <br/><br/>
+        <div>
+            <button class="btn_for_monitor">Disabled</button> : Stop monitoring the waiting job in the queue and scaling in/out the swarm.
+        </div>
+        <div style="margin-top:10px">
+            <button class="btn_for_monitor">Enabled</button> : Resume monitoring of the waiting job in the queue and scaling in/out the swarm
+        </div>
+    </div>
+</j:jelly>

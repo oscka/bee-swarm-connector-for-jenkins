@@ -1,0 +1,238 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core"
+            xmlns:st="jelly:stapler"
+            xmlns:d="jelly:define"
+            xmlns:l="/lib/layout"
+            xmlns:t="/lib/hudson"
+            xmlns:f="/lib/form"
+            xmlns:c="/lib/credentials">
+    <l:layout norefresh="true">
+        <l:main-panel>
+        <style>
+            .editButton {
+              background-color: #007087;
+              border: none;
+              color: white;
+              padding: 7px 25px;
+              text-align: center;
+              text-decoration: none;
+              display: inline-block;
+              font-size: 14px;
+              margin: 4px 2px;
+              cursor: pointer;
+            }
+            .cancelButton {
+              background-color: #FF3636;
+              border: none;
+              color: white;
+              padding: 7px 25px;
+              text-align: center;
+              text-decoration: none;
+              display: inline-block;
+              font-size: 14px;
+              margin: 4px 2px;
+              cursor: pointer;
+            }
+            .advancedButton {
+            box-sizing: border-box;
+            padding: 0.375rem 1rem;
+            margin-right: 0.25rem;
+            margin-left: 0.25rem;
+            min-width: 4.5rem;
+            min-height: 2rem;
+            cursor: pointer;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            font-size: 0.75rem;
+            font-size: var(--btn-font-size);
+            line-height: 1rem;
+            line-height: var(--btn-line-height);
+            font-weight: bold;
+            font-weight: var(--btn-font-weight);
+            text-align: center;
+            vertical-align: middle;
+            text-decoration: none;
+            border: 2px solid;
+            border-radius: 4px;
+            transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+            color: #4d545d;
+            color: var(--btn-secondary-color);
+            border-color: #9ba7af;
+            border-color: var(--btn-secondary-border);
+            background-color: #fff;
+            background-color: var(--btn-secondary-bg);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            }
+            </style>
+            <h3>Edit Bee Swarm Connector</h3>
+            <form id="f_edit">
+            <table  width="80%" cellpadding="5" cellspacing="0">
+
+                <tr>
+                    <td class="setting-name">Bee Rest Server</td>
+                    <td><f:textbox id="swarm_beeRestUrl" value="${it.swarmData.beeRestUrl}" disabled="disabled" style="background-color:#E7E7E7;"/> </td>
+                </tr>
+                <tr>
+                    <td class="setting-name">Bee Project Name</td>
+                    <td><f:textbox id="project_name" value="${it.swarmData.projectName}" disabled="disabled" style="background-color:#E7E7E7;"/></td>
+                </tr>
+                <tr>
+                    <td class="setting-name">Swarm Name</td>
+                    <td><f:textbox id="swarm_name" value="${it.swarmData.swarmName}" disabled="disabled" style="background-color:#E7E7E7;"/> </td>
+                </tr>
+
+                <tr>
+                    <td class="setting-name">Owner</td>
+                    <td><f:textbox id="owner_name" name="owner_name" value="${it.swarmData.ownerName}"/></td>
+                </tr>
+                <tr>
+                    <td class="setting-name">Swarm Token</td>
+                    <td><f:textbox id="swarm_token" name="swarm_token" value="${it.swarmData.token}"/></td>
+                </tr>
+
+                <tr>
+                        <td class="setting-name">Credentials</td>
+                        <td>
+                           <j:set var="credentials" value="${it.getCredentials()}" />
+                               <select value="${it.swarmData.credential}"  id="select_credentials" class="setting-input validated select  credentials-select">
+                                   <j:forEach var="inst" items="${credentials}">
+                                       <j:if test="${it.swarmData.credential == inst.getId()}">
+                                            <f:option selected="true" value="${inst.getId()}">${inst.getDisplayName()}</f:option>
+                                       </j:if>
+
+                                       <j:if test="${it.swarmData.credential != inst.getId()}">
+                                           <f:option value="${inst.getId()}">${inst.getDisplayName()}</f:option>
+                                      </j:if>
+
+
+                                   </j:forEach>
+                               </select>
+                              <div>Swarm CI worker에 login 하기 위해 <a href="${rootURL}/credentials" target="_blank">
+                              manage credentials</a>에서 username과 private key를 이용하여 생성한 ssh credentials 를 선택해주세요</div>
+                         </td>
+                    </tr>
+
+                <tr>
+
+                    <td  class="setting-name">Labels
+                    </td>
+
+                    <td>
+                        <div><f:textbox id="labels" value="${it.swarmData.labels}"/> </div>
+                         <div> Swarm을 통해서 빌드 할 jenkins job label 입력, 다수 label 입력 시 빈칸으로 구분  </div>
+                    </td>
+
+                </tr>
+
+                <tr id="advanced_button">
+                    <td>
+                        <button type="button" id="btnAdvanced" class="advancedButton">고급...</button>
+                    </td>
+                </tr>
+
+                <tr style="visibility: hidden" id="advanced_option">
+                    <td class="setting-name">JavaPath</td>
+                    <td>
+                        <div><f:textbox id="java_path" name="java_path" value="${it.swarmData.javaPath}"/> </div>
+                        <div>This java Path will be used to start the jvm for launching agent via SSH . (/mycustomjdkpath/bin/java ) If empty Jenkins will search java command in the agent</div>
+                    </td>
+                </tr>
+            </table>
+            <p>
+
+
+
+                <button type="button" id="btnEdit" class="editButton"> Save </button>
+                <button type="button" id="btnCancel" class="cancelButton"> Cancel </button>
+            </p>
+
+        </form>
+
+        <script
+            src="https://code.jquery.com/jquery-3.7.1.min.js"
+            integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+            crossorigin="anonymous"></script>
+        <script type="text/javaScript">
+            jQuery.noConflict();
+
+            function parameter_validate(){
+
+                if(jQuery("#owner_name").val().length === 0){
+                    alert("Owner Name 입력 하세요");
+                    return false;
+                }
+                if(jQuery("#swarm_token").val().length === 0){
+                    alert("Swarm token 입력 하세요");
+                    return false;
+                }
+                if(jQuery("#labels").val().length === 0){
+                    alert("label 입력 하세요");
+                    return false;
+                }
+                return true;
+            }
+
+            function get_param(){
+                var dic_param = {};
+                dic_param["swarm_beeRestUrl"] = jQuery("#swarm_beeRestUrl").val();
+                dic_param["project_name"] = jQuery("#project_name").val();
+                dic_param["swarm_name"] = jQuery("#swarm_name").val();
+                dic_param["select_credentials"] = jQuery("#select_credentials").val();
+                dic_param["owner_name"] = jQuery("#owner_name").val();
+                dic_param["swarm_token"] = jQuery("#swarm_token").val();
+                dic_param["labels"] = jQuery( "#labels").val();
+                dic_param["java_path"] = jQuery( "#java_path").val();
+               return dic_param;
+            }
+
+            function event_button(){
+                jQuery('#btnEdit').off('click').on('click', function() {
+                    jQuery(this).attr('disabled', true);
+                    jQuery(this).css("background-color","grey");
+
+                    if(parameter_validate()){
+                        var param = get_param();
+                        var json_str = JSON.stringify(param);
+                        jQuery.ajax("${rootURL}/Bee-Connector/editing",{
+                            method: "get",
+                            data: {"params": json_str},
+                            contentType: 'application/json; charset=utf-8',
+                        }).done(function (rsp) {
+                            jQuery('#btnEdit').attr('disabled', false);
+                            jQuery('#btnEdit').css("background-color","#007087");
+                            if(rsp.indexOf("[FAILED]") >= 0){
+                                alert(rsp);
+                            }else{
+                                location.href = rsp;
+                            }
+                        }).fail(function(rsp){
+                            alert(rsp);
+                        });
+                    }else{
+                        jQuery('#btnEdit').attr('disabled', false);
+                        jQuery('#btnEdit').css("background-color","#007087");
+                    }
+                });
+
+                jQuery('#btnCancel').off('click').on('click', function() {
+                    location.href="${rootURL}/Bee-Connector";
+                });
+
+                jQuery('#btnAdvanced').off('click').on('click', function() {
+                jQuery("#advanced_button").css("display","none");
+                jQuery("#advanced_option").css("visibility","visible");
+                });
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+               event_button();
+            });
+
+        </script>
+        </l:main-panel>
+     </l:layout>
+</j:jelly>

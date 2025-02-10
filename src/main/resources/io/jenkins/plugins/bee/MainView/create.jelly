@@ -1,0 +1,308 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core"
+            xmlns:st="jelly:stapler"
+            xmlns:d="jelly:define"
+            xmlns:l="/lib/layout"
+            xmlns:t="/lib/hudson"
+            xmlns:f="/lib/form"
+            xmlns:c="/lib/credentials">
+    <l:layout norefresh="true">
+        <l:main-panel>
+
+        <style>
+        .saveButton {
+            background-color: #003399;
+            border: none;
+            color: white;
+            padding: 7px 25px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            margin: 4px 2px;
+            cursor: pointer;
+        }
+        .cancelButton {
+            background-color: #FF3636;
+            border: none;
+            color: white;
+            padding: 7px 25px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            margin: 4px 2px;
+            cursor: pointer;
+        }
+        .advancedButton {
+            box-sizing: border-box;
+            padding: 0.375rem 1rem;
+            margin-right: 0.25rem;
+            margin-left: 0.25rem;
+            min-width: 4.5rem;
+            min-height: 2rem;
+            cursor: pointer;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            font-size: 0.75rem;
+            font-size: var(--btn-font-size);
+            line-height: 1rem;
+            line-height: var(--btn-line-height);
+            font-weight: bold;
+            font-weight: var(--btn-font-weight);
+            text-align: center;
+            vertical-align: middle;
+            text-decoration: none;
+            border: 2px solid;
+            border-radius: 4px;
+            transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+            color: #4d545d;
+            color: var(--btn-secondary-color);
+            border-color: #9ba7af;
+            border-color: var(--btn-secondary-border);
+            background-color: #fff;
+            background-color: var(--btn-secondary-bg);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        </style>
+
+            <h3>Creation Bee Swarm Connector</h3>
+            <form id="f_save">
+            <table width="80%"  cellpadding="5" cellspacing="0">
+                <tr>
+                    <td width="20%" class="setting-name">Bee Project Name</td>
+                    <td width="80%"><f:textbox name="project_name" /></td>
+                </tr>
+                <tr>
+                    <td class="setting-name">Swarm Name</td>
+                    <td><f:textbox name="swarm_name" /> </td>
+                </tr>
+
+                <tr>
+                    <td class="setting-name">Owner</td>
+                    <td><f:textbox name="owner_name" /></td>
+                </tr>
+                <tr>
+                    <td>Swarm Token</td>
+                    <td><f:textbox name="token" /></td>
+                </tr>
+                <tr>
+                    <td>Bee Rest Server Url (https://api.bee0.lge.com/)</td>
+                    <td><f:textbox name="beeRestUrl" /></td>
+                </tr>
+
+                <tr>
+                    <td  class="setting-name">Remote root directory</td>
+                    <td><f:textbox name="node_remote_path" value="/home/worker/swarm_root/" /></td>
+                </tr>
+
+                <tr>
+                    <td class="setting-name">Credentials</td>
+                    <td>
+                       <j:set var="credentials" value="${it.getCredentials()}" />
+                           <select  name="select_credentials" class="setting-input validated select  credentials-select">
+                               <j:forEach var="inst" items="${credentials}">
+                                   <f:option value="${inst.getId()}">${inst.getDisplayName()}</f:option>
+                               </j:forEach>
+                           </select>
+
+                       <div>Swarm CI worker에 login 하기 위해 <a href="${rootURL}/credentials" target="_blank">
+                       manage credentials</a>에서 username과 private key를 이용하여 생성한 ssh credentials 를 선택해주세요</div>
+                     </td>
+                </tr>
+
+                <tr>
+                    <td class="setting-name">Labels
+                    </td>
+
+                    <td>
+                        <div><f:textbox name="labels" /> </div>
+                        <div> Swarm을 통해서 빌드 할 jenkins job label 입력, 다수 label 입력 시 빈칸으로 구분  </div>
+                    </td>
+                </tr>
+
+                <tr id="advanced_button">
+                    <td>
+                        <button type="button" id="btnAdvanced" class="advancedButton">고급...</button>
+                    </td>
+                </tr>
+
+                <tr style="visibility: hidden" id="advanced_option">
+                    <td class="setting-name">JavaPath</td>
+                    <td>
+                        <div><f:textbox name="java_path" /> </div>
+                        <div>This java Path will be used to start the jvm for launching agent via SSH . (/mycustomjdkpath/bin/java ) If empty Jenkins will search java command in the agent</div>
+                    </td>
+                </tr>
+             </table>
+
+             <button type="button" id="btnSave" class="saveButton"> Save </button>
+             <button type="button" id="btnCancel" class="cancelButton"> Cancel </button>
+
+        </form>
+
+        <script
+          src="https://code.jquery.com/jquery-3.7.1.min.js"
+          integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+          crossorigin="anonymous"></script>
+        <script type="text/javaScript">
+           jQuery.noConflict();
+           function get_value(dic_data, item_name){
+                if(dic_data.name === item_name){
+                    if(dic_data.value.length === 0){
+                        return null;
+                    }else{
+                        return dic_data.value;
+                    }
+                }
+                return null;
+            }
+            function get_param(arr_data){
+                var dic_param = {};
+                var labels = "";
+                var isValid = true;
+                jQuery.each(arr_data, function (index, item) {
+
+                    switch(index){
+                        case 0:
+                            var value = get_value(item, "project_name");
+                            if(value !== null){
+                                dic_param["project_name"] = value;
+                            }else{
+                                alert(" Project Name 입력 하세요");
+                                isValid = false;
+                                return false;
+                            }
+                        break;
+                        case 1:
+                            var value = get_value(item, "swarm_name");
+                            if(value !== null){
+                                dic_param["swarm_name"] = value;
+                            }else{
+                                alert(" Swarm Name 입력 하세요");
+                                isValid = false;
+                                return false;
+                            }
+
+                        break;
+                        case 2:
+                            value = get_value(item, "owner_name");
+                            if(value !== null){
+                                dic_param["owner_name"] = value;
+                            }else{
+                                alert(" Owner Name 입력 하세요");
+                                isValid = false;
+                                return false;
+                            }
+                        break;
+                        case 3:
+                            value = get_value(item, "token");
+                            if(value !== null){
+                                dic_param["token"] = value;
+                            }else{
+                                alert(" token 입력 하세요");
+                                isValid = false;
+                                return false;
+                            }
+                        break;
+                        case 4:
+                            value = get_value(item, "beeRestUrl");
+                            if(value !== null){
+                                dic_param["beeRestUrl"] = value;
+                            }else{
+                                alert(" Bee Rest Server Url 입력 하세요");
+                                isValid = false;
+                                return false;
+                            }
+                        break;
+                        case 5:
+                            value = get_value(item, "node_remote_path");
+                            if(value !== null){
+                                dic_param["node_remote_path"] = value;
+                            }else{
+                                alert(" Remote root directory 입력 하세요");
+                                isValid = false;
+                                return false;
+                            }
+                        break;
+                        case 6:
+                            value = get_value(item, "select_credentials");
+                            if(value !== null){
+                                dic_param["select_credentials"] = value;
+                            }else{
+                                alert(" Credentials 선택 하세요");
+                                isValid = false;
+                                return false;
+                            }
+                        break;
+                        case 7:
+                            value = get_value(item, "labels");
+                             if(value !== null){
+                                dic_param["labels"] = value;
+                            }else{
+                                alert(" labels 입력 하세요");
+                                isValid = false;
+                                return false;
+                            }
+                        break;
+                        case 8:
+                            value = get_value(item, "java_path");
+                            if(value !== null){
+                                dic_param["java_path"] = value;
+                            } else {
+                                dic_param["java_path"] = "";
+                            }
+                            break;
+                    }
+               });
+               if(isValid === false){
+                  return null;
+               }else{
+                  return dic_param;
+               }
+            }
+
+            function event_button(){
+                jQuery('#btnSave').off('click').on('click', function() {
+                    var form_data = jQuery('#f_save').serializeArray();
+                    var param = get_param(form_data);
+                    if(param !== null){
+                        var json_str = JSON.stringify(param);
+
+                        jQuery.ajax("${rootURL}/Bee-Connector/save",{
+                            method: "get",
+                            data: {"params": json_str},
+                        }).done(function (rsp) {
+                            if(rsp.indexOf("[FAILED]") >= 0){
+                                alert(rsp);
+                            }else{
+                                location.href = rsp;
+                            }
+                        }).fail(function(rsp){
+                            alert(rsp);
+                        });
+                    }
+                });
+
+                jQuery('#btnCancel').off('click').on('click', function() {
+                    location.href="${rootURL}/Bee-Connector";
+                });
+
+                jQuery('#btnAdvanced').off('click').on('click', function() {
+                    jQuery("#advanced_button").css("display","none");
+                    jQuery("#advanced_option").css("visibility","visible");
+                });
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+               event_button();
+            });
+        </script>
+
+        </l:main-panel>
+     </l:layout>
+</j:jelly>
