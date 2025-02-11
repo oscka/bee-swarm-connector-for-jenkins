@@ -4,8 +4,9 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>4.16</version>
-        <!--<version>4.76</version>-->
+<!--        <version>4.16</version>-->
+<!--        <version>4.76</version>-->
+        <version>4.86</version>
         <relativePath />
     </parent>
     <groupId>io.jenkins.plugins</groupId>
@@ -17,10 +18,10 @@
         <changelist>-SNAPSHOT</changelist>
 
         <!-- Baseline Jenkins version you use to build the plugin. Users must have this version or newer to run. -->
-        <jenkins.version>2.289.1</jenkins.version>
-        <!--<jenkins.version>2.442</jenkins.version>-->
-        <java.level>8</java.level>
-        <!--<java.level>11</java.level>-->
+<!--        <jenkins.version>2.289.1</jenkins.version>-->
+        <jenkins.version>2.479.1</jenkins.version>
+<!--        <java.level>8</java.level>-->
+        <java.level>17</java.level>
         <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     </properties>
     <name>Bee Swarm connector</name>
@@ -131,7 +132,7 @@
             <version>1.4.10</version>
         </dependency>
 
-        <dependency>
+        <!--<dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
             <version>5.2.13.RELEASE</version>
@@ -147,10 +148,9 @@
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-web</artifactId>
             <version>5.4.6</version>
-        </dependency>
+        </dependency>-->
 
         <!-- 2.442 / 11 -->
-        <!--
 
         <dependency>
             <groupId>org.jenkins-ci</groupId>
@@ -161,28 +161,39 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
-            <version>5.3.31</version>
+            <version>6.1.14</version>
         </dependency>
 
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-core</artifactId>
-            <version>5.3.31</version>
+            <version>6.1.14</version>
         </dependency>
 
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-web</artifactId>
-            <version>5.8.1</version>
+            <version>6.3.4</version>
         </dependency>
 
-        -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>2.14.2</version>
         </dependency>
 
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <version>5.0.0</version>  <!-- 또는 6.0.0 -->
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-server</artifactId>
+            <version>11.0.14</version>  <!-- 최신 버전 사용 -->
+        </dependency>
         <!-- end dgs dependency -->
 
     </dependencies>
